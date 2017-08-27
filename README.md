@@ -13,8 +13,9 @@ Acesse o firebase configure as instancia e atualização em tempo de execução
 ▷ Ferrametas usadas neste projeto:
 
 Android Studio;
-Firebase: *Realtime database *Autenticação
-GeoFire;
+
+*Firebase: *Realtime database *Autenticação
+*GeoFire;
 
 ▷ Neste projeto funcionalidades
 1 - Sistema de Login e Registro ( Motorista e passageiro )
@@ -28,4 +29,5 @@ GeoFire;
 
 
 ▷ Funcionalidades a serem adicionadas (Breve)
+
 1 - Sistema de conversa entre motorista e passageiro
