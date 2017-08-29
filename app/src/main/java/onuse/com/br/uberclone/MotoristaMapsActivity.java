@@ -77,30 +77,23 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
             }
         });
 
-        getAssignedCustomer();
+        PegaPassageioRequisitando();
     }
-
-    private void getAssignedCustomer(){
-        String motoristaID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference referencia =  FirebaseDatabase.getInstance().getReference()
-                .child("Users")
-                .child("Motoristas")
-                .child(motoristaID)
-                .child("passageiropoUID");
-        referencia.addValueEventListener(new ValueEventListener() {
+    private void PegaPassageioRequisitando(){
+        String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Motoristas").child(driverId).child("passageiropoUID");
+        assignedCustomerRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if(dataSnapshot.exists()){
                     passageiroID = dataSnapshot.getValue().toString();
-                    PegarLocalizacaoDesignada();
+                    PegaPassageioRequisitandoLocal();
                 }else{
                     passageiroID = "";
-                    if(marcadordeBusca != null)
-                    {
+                    if(marcadordeBusca!= null){
                         marcadordeBusca.remove();
                     }
-                    if(passageirosLocalizacaoReferenciaOuvinte != null)
-                    {
+                    if (passageirosLocalizacaoReferenciaOuvinte != null){
                         passageirosLocalizacaoReferencia.removeEventListener(passageirosLocalizacaoReferenciaOuvinte);
                     }
                 }
@@ -108,41 +101,37 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
         });
     }
 
-    private void PegarLocalizacaoDesignada(){
-        passageirosLocalizacaoReferencia = FirebaseDatabase.getInstance().getReference()
-                .child("PassageiroRequisicao")
-                .child(passageiroID)
-                .child("l");
+    private void PegaPassageioRequisitandoLocal(){
+        passageirosLocalizacaoReferencia = FirebaseDatabase.getInstance().getReference().child("passageiroRequisicao").child(passageiroID).child("l");
         passageirosLocalizacaoReferenciaOuvinte = passageirosLocalizacaoReferencia.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists() && !passageiroID.equals(""))
-                {
-                    List<Object>map = (List<Object>) dataSnapshot.getValue();
-                    double latitude = 0;
-                    double longitude = 0;
+                if(dataSnapshot.exists() && !passageiroID.equals("")){
+                    List<Object> map = (List<Object>) dataSnapshot.getValue();
+                    double locationLat = 0;
+                    double locationLng = 0;
                     if(map.get(0) != null){
-                        latitude =  Double.parseDouble(map.get(0).toString());
+                        locationLat = Double.parseDouble(map.get(0).toString());
                     }
                     if(map.get(1) != null){
-                        longitude = Double.parseDouble(map.get(1).toString());
+                        locationLng = Double.parseDouble(map.get(1).toString());
                     }
-                    LatLng motoristaLocalizacao = new LatLng(latitude, longitude);
-                    marcadordeBusca = mMap.addMarker(new MarkerOptions().position(motoristaLocalizacao).title("Localização de ser buscada"));
+                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
+                    marcadordeBusca = mMap.addMarker(new MarkerOptions().position(driverLatLng).title("Local de busca"));
+                }else{
+                    if(marcadordeBusca != null)
+                    marcadordeBusca.remove();
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
         });
-
     }
 
     @Override
@@ -154,9 +143,7 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
             return;
         }
         buildGoogleApiClient();
-        try{
-            mMap.setMyLocationEnabled(true);
-        }catch (SecurityException e){}
+        mMap.setMyLocationEnabled(true);
     }
 
     @Override
@@ -169,10 +156,58 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
                 mapFragment.getMapAsync(this);
             } else {
                 //Quando o usuario recusar a permissao
-                Toast.makeText(this, "Você não tem permissão para acessar o gps", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Você não tem permissão para acessar", Toast.LENGTH_LONG).show();
             }
         }
     }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        if(getApplicationContext()!=null){
+
+            mLastLocation = location;
+            LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+
+            String UsuarioID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("motoristasDisponiveis");
+            DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("MotoristasTrabalhando");
+            GeoFire geoFireAvailable = new GeoFire(refAvailable);
+            GeoFire geoFireWorking = new GeoFire(refWorking);
+
+            switch (passageiroID){
+                case "":
+                    geoFireWorking.removeLocation(UsuarioID);
+                    geoFireAvailable.setLocation(UsuarioID, new GeoLocation(location.getLatitude(), location.getLongitude()));
+                    break;
+
+                default:
+                    geoFireAvailable.removeLocation(UsuarioID);
+                    geoFireWorking.setLocation(UsuarioID, new GeoLocation(location.getLatitude(), location.getLongitude()));
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {}
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {}
 
     protected synchronized void buildGoogleApiClient(){
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -184,67 +219,17 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        if(getApplicationContext() !=null){
-            mLastLocation = location;
-
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
-
-            String passageiroUID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
-            DatabaseReference refDisponivel = FirebaseDatabase.getInstance().getReference().child("MotoristasDisponiveis");
-
-            DatabaseReference refTrabalhando = FirebaseDatabase.getInstance().getReference().child("MotoristasTrabalhando");
-
-            GeoFire geofireDispoivel = new GeoFire(refDisponivel);
-            GeoFire geofireTrabalhando = new GeoFire(refTrabalhando);
-
-            switch (passageiroID){
-                case "":
-                    geofireTrabalhando.removeLocation(passageiroUID);
-                    geofireDispoivel.setLocation(passageiroUID, new GeoLocation(location.getLatitude(), location.getLongitude()));
-                    break;
-                default:
-                    geofireDispoivel.removeLocation(passageiroUID);
-                    geofireTrabalhando.setLocation(passageiroUID, new GeoLocation(location.getLatitude(), location.getLongitude()));
-                    break;
-            }
-        }
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(1000); //setar intervalo de solicitações
-        mLocationRequest.setFastestInterval(1000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY); //setar prioridade de solicitações
-        try{
-            //para objetos que usam localização e permissoes perigosas precisamos circundar com try catch secutyty
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        }catch (SecurityException e){}
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {}
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {}
-
-    @Override
     protected void onStop() {
         super.onStop();
         if (!estaDeslogado){
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("MotoristasDisponiveis");
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("motoristasDisponiveis");
 
             GeoFire geoFire = new GeoFire(ref);
             geoFire.removeLocation(userId);
         }
 
     }
+
 }

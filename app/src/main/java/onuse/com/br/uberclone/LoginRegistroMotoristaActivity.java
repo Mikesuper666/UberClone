@@ -47,7 +47,7 @@ public class LoginRegistroMotoristaActivity extends AppCompatActivity {
 
                 if(user != null)
                 {
-                    Intent intent = new Intent(LoginRegistroMotoristaActivity.this, MainActivity.class);
+                    Intent intent = new Intent(LoginRegistroMotoristaActivity.this, MotoristaMapsActivity.class);
                     startActivity(intent);
                     finish();
                 }
