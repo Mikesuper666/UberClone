@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         btnMotorista.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent  intent = new Intent(MainActivity.this, MotoristaMapsActivity.class);
+                Intent  intent = new Intent(MainActivity.this, LoginRegistroMotoristaActivity.class);
                 startActivity(intent);
                 finish();
             }
@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
         btnPassageiro.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent  intent = new Intent(MainActivity.this, PassageiroMapsActivity.class);
+                Intent  intent = new Intent(MainActivity.this, LoginRegistroPassageiroActivity.class);
                 startActivity(intent);
                 finish();
             }

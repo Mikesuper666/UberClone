@@ -57,7 +57,6 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-
         logout = findViewById(R.id.logout);
         logout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -72,7 +71,7 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
                 geoFire.removeLocation(userId);
 
                 FirebaseAuth.getInstance().signOut();
-                Intent intent = new Intent(MotoristaMapsActivity.this, LoginRegistroActivity.class);
+                Intent intent = new Intent(MotoristaMapsActivity.this, MainActivity.class);
                 startActivity(intent);
                 finish();
             }
@@ -85,9 +84,9 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
         String motoristaID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference referencia =  FirebaseDatabase.getInstance().getReference()
                 .child("Users")
-                .child("Motoistas")
+                .child("Motoristas")
                 .child(motoristaID)
-                .child("PassageiroID");
+                .child("passageiropoUID");
         referencia.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -115,7 +114,10 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
     }
 
     private void PegarLocalizacaoDesignada(){
-        passageirosLocalizacaoReferencia = FirebaseDatabase.getInstance().getReference().child("PassageiroRequisicao").child(passageiroID).child("l");
+        passageirosLocalizacaoReferencia = FirebaseDatabase.getInstance().getReference()
+                .child("PassageiroRequisicao")
+                .child(passageiroID)
+                .child("l");
         passageirosLocalizacaoReferenciaOuvinte = passageirosLocalizacaoReferencia.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -231,4 +233,18 @@ public class MotoristaMapsActivity extends FragmentActivity implements OnMapRead
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {}
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (!estaDeslogado){
+            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            DatabaseReference ref = FirebaseDatabase.getInstance().getReference("MotoristasDisponiveis");
+
+            GeoFire geoFire = new GeoFire(ref);
+            geoFire.removeLocation(userId);
+        }
+
+    }
 }

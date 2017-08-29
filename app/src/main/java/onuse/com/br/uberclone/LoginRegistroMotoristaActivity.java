@@ -17,7 +17,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-public class LoginRegistroActivity extends AppCompatActivity {
+public class LoginRegistroMotoristaActivity extends AppCompatActivity {
 
     private EditText emailEDT, senhaEDT;
     private Button btnLogin, btnRegistro;
@@ -47,7 +47,7 @@ public class LoginRegistroActivity extends AppCompatActivity {
 
                 if(user != null)
                 {
-                    Intent intent = new Intent(LoginRegistroActivity.this, MainActivity.class);
+                    Intent intent = new Intent(LoginRegistroMotoristaActivity.this, MainActivity.class);
                     startActivity(intent);
                     finish();
                 }
@@ -60,12 +60,12 @@ public class LoginRegistroActivity extends AppCompatActivity {
             public void onClick(View view) {
                 final String email = emailEDT.getText().toString();
                 final String senha = senhaEDT.getText().toString();
-                autenticacao.signInWithEmailAndPassword(email, senha).addOnCompleteListener(LoginRegistroActivity.this, new OnCompleteListener<AuthResult>() {
+                autenticacao.signInWithEmailAndPassword(email, senha).addOnCompleteListener(LoginRegistroMotoristaActivity.this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                              if(!task.isSuccessful())
                              {
-                                 Toast.makeText(LoginRegistroActivity.this, "Erro de login", Toast.LENGTH_LONG).show();
+                                 Toast.makeText(LoginRegistroMotoristaActivity.this, "Erro de login", Toast.LENGTH_LONG).show();
                              }
                     }
                 });
@@ -77,16 +77,17 @@ public class LoginRegistroActivity extends AppCompatActivity {
             public void onClick(View view) {
                 final String email = emailEDT.getText().toString();
                 final String senha = senhaEDT.getText().toString();
-                autenticacao.createUserWithEmailAndPassword(email, senha).addOnCompleteListener(LoginRegistroActivity.this, new OnCompleteListener<AuthResult>() {
+                autenticacao.createUserWithEmailAndPassword(email, senha).addOnCompleteListener(LoginRegistroMotoristaActivity.this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(!task.isSuccessful())
                         {
-                            Toast.makeText(LoginRegistroActivity.this, "Erro de login", Toast.LENGTH_LONG).show();
+                            Toast.makeText(LoginRegistroMotoristaActivity.this, "Erro de login", Toast.LENGTH_LONG).show();
                         }else{
                             String usuarioID = autenticacao.getCurrentUser().getUid();
                             DatabaseReference usuarioAtual = FirebaseDatabase.getInstance().getReference()
                                     .child("Users")
+                                    .child("Motoristas")
                                     .child(usuarioID);
                             usuarioAtual.setValue(true);
                         }

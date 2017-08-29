@@ -45,8 +45,8 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
     Location mLastLocation;
     LocationRequest mLocationRequest;
     private Button logout, requisitar;
-    private String passageiroID = "";
     private Boolean foiRquisitado = false;
+    private Boolean motoristaEncontrado = false;
 
     //local de busca
     private LatLng localdeBusca;
@@ -56,8 +56,6 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
     private ValueEventListener motoristaLocalizacaoReferenciaOuvinte;
 
     private int alcance = 1;
-    private Boolean motoristaEncontrado = false;
-    private Boolean requisicaoEncontrada = false;
     private String motoristaEncontradoID;
 
     private GeoQuery geoQuery;
@@ -80,7 +78,7 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
             @Override
             public void onClick(View view) {
                 FirebaseAuth.getInstance().signOut();
-                Intent intent = new Intent(PassageiroMapsActivity.this, LoginRegistroActivity.class);
+                Intent intent = new Intent(PassageiroMapsActivity.this, MainActivity.class);
                 startActivity(intent);
                 finish();
             }
@@ -90,44 +88,38 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
         requisitar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(foiRquisitado)
-                {
+                //se o motorista foi requisitado
+                if (foiRquisitado) {
                     foiRquisitado = false;
                     geoQuery.removeAllListeners();
                     motoristasLocalizacaoReferencia.removeEventListener(motoristaLocalizacaoReferenciaOuvinte);
 
-                    if(motoristaEncontradoID != null)
-                    {
+                    if (motoristaEncontradoID != null) {
                         DatabaseReference motoristaRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(motoristaEncontradoID);
                         motoristaRef.setValue(true);
-                        motoristaEncontrado = null;
+                        motoristaEncontradoID = null;
                     }
-                    motoristaEncontrado =true;
+                    motoristaEncontrado = false;
                     alcance = 1;
                     String usuarioID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
                     DatabaseReference ref = FirebaseDatabase.getInstance().getReference("passageiroRequisicao");
-
                     GeoFire geoFire = new GeoFire(ref);
-
                     geoFire.removeLocation(usuarioID);
 
-                    if(marcadordeBusca != null)
-                    {
+                    if (marcadordeBusca != null) {
                         marcadordeBusca.remove();
                     }
-                    if(marcadorMorotista != null)
-                    {
+                    if (marcadorMorotista != null) {
                         marcadorMorotista.remove();
                     }
                     requisitar.setText("Chamar Uber");
-                }else{
-                    requisicaoEncontrada = true;
+                } else {
+                    foiRquisitado = true;
 
                     String UsuarioID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
                     DatabaseReference ref = FirebaseDatabase.getInstance().getReference("passageiroRequisicao");
-
                     GeoFire geoFire = new GeoFire(ref);
                     geoFire.setLocation(UsuarioID, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
 
@@ -141,16 +133,18 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
                     requisitar.setText("Procurando por motoristas...");
 
                     //chamamos o metodo de motoristas proximos
+                    //MotoristasProximos();
                     MotoristasProximos();
                 }
+
             }
         });
     }
 
-    private void MotoristasProximos()
-    {
+    private void MotoristasProximos(){
         //adiciona no nó de motoristas disponiveis
-        DatabaseReference motoristaLocalizacao = FirebaseDatabase.getInstance().getReference().child("motoristasDisponiveis");
+        DatabaseReference motoristaLocalizacao = FirebaseDatabase.getInstance().getReference()
+                .child("motoristasDisponiveis");
 
         //criamos um objeto geofire com a nossa referencia do firebase
         GeoFire geoFire = new GeoFire(motoristaLocalizacao);
@@ -164,19 +158,21 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
-                if(!requisicaoEncontrada && motoristaEncontrado)
+                if(!motoristaEncontrado && foiRquisitado)
                 {
                     //motoristas encontrado recebe verdadeiro e a chave da id passado pela requisição
                     motoristaEncontrado = true;
                     motoristaEncontradoID = key;
 
                     DatabaseReference motoristaReferencia = FirebaseDatabase.getInstance().getReference()
-                            .child("Users").child("Drivers").child(motoristaEncontradoID);
+                            .child("Users")
+                            .child("Motoristas")
+                            .child(motoristaEncontradoID);
 
-                    String passageiroID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    String passageiroUID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
                     HashMap map = new HashMap();
-                    map.put("passageiroID", passageiroID);
+                    map.put("passageiropoUID", passageiroUID);
                     motoristaReferencia.updateChildren(map);
 
                     LocalizacaoMotorista();
@@ -185,14 +181,10 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
             }
 
             @Override
-            public void onKeyExited(String key) {
-
-            }
+            public void onKeyExited(String key) {}
 
             @Override
-            public void onKeyMoved(String key, GeoLocation location) {
-
-            }
+            public void onKeyMoved(String key, GeoLocation location) {}
 
             @Override
             public void onGeoQueryReady() {
@@ -205,61 +197,58 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
             }
 
             @Override
-            public void onGeoQueryError(DatabaseError error) {
-
-            }
+            public void onGeoQueryError(DatabaseError error) {}
         });
     }
 
-    private void LocalizacaoMotorista()
-    {
-        motoristasLocalizacaoReferencia = FirebaseDatabase.getInstance().getReference().child("MotoristasTrabalhando").child(motoristaEncontradoID).child("l");
+    private void LocalizacaoMotorista(){
+        motoristasLocalizacaoReferencia = FirebaseDatabase.getInstance().getReference()
+                .child("MotoristasTrabalhando")
+                .child(motoristaEncontradoID)
+                .child("l");
         motoristaLocalizacaoReferenciaOuvinte = motoristasLocalizacaoReferencia.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
 
-                //Criamos uma lista de objetos chamado map
-                List<Object> map = (List<Object>)dataSnapshot.getValue();
-                double latitude = 0;
-                double longitude = 0;
+                if (dataSnapshot.exists() && foiRquisitado) {
+                    //Criamos uma lista de objetos chamado map
+                    List<Object> map = (List<Object>) dataSnapshot.getValue();
+                    double latitude = 0;
+                    double longitude = 0;
 
-                if(map.get(0) != null)
-                {
-                    latitude = Double.parseDouble(map.get(0).toString());
+                    if (map.get(0) != null) {
+                        latitude = Double.parseDouble(map.get(0).toString());
+                    }
+                    if (map.get(1) != null) {
+                        longitude = Double.parseDouble(map.get(1).toString());
+                    }
+                    LatLng motoristaLatLng = new LatLng(latitude, longitude);
+                    if (marcadorMorotista != null) {
+                        marcadorMorotista.remove();
+                    }
+                    Location loc1 = new Location("");
+                    loc1.setLatitude(localdeBusca.latitude);
+                    loc1.setLongitude(localdeBusca.longitude);
+
+                    Location loc2 = new Location("");
+                    loc2.setLatitude(motoristaLatLng.latitude);
+                    loc2.setLongitude(motoristaLatLng.longitude);
+
+                    float distance = loc1.distanceTo(loc2);
+
+                    if (distance < 100) {
+                        requisitar.setText("Motorista Chegou");
+                    } else {
+                        requisitar.setText("Motorista a distância de: " + String.valueOf(distance));
+                    }
+
+                    //mostra o local onde  o motorista esta nesse momento
+                    marcadorMorotista = mMap.addMarker(new MarkerOptions().position(motoristaLatLng).title("Seu Motorista"));
                 }
-                if(map.get(1) != null)
-                {
-                    longitude = Double.parseDouble(map.get(1).toString());
-                }
-                LatLng motoristaLatLng = new LatLng(latitude, longitude);
-                if(marcadorMorotista != null)
-                {
-                    marcadorMorotista.remove();
-                }
-                Location loc1 = new Location("");
-                loc1.setLatitude(localdeBusca.latitude);
-                loc1.setLongitude(localdeBusca.longitude);
-
-                Location loc2 = new Location("");
-                loc2.setLatitude(motoristaLatLng.latitude);
-                loc2.setLongitude(motoristaLatLng.longitude);
-
-                float distance = loc1.distanceTo(loc2);
-
-                if (distance<100){
-                    requisitar.setText("Motorista Chegou");
-                }else{
-                    requisitar.setText("Motorista a distância de: " + String.valueOf(distance));
-                }
-
-                //mostra o local onde  o motorista esta nesse momento
-                marcadorMorotista = mMap.addMarker(new MarkerOptions().position(motoristaLatLng).title("Seu Motorista"));
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
+            public void onCancelled(DatabaseError databaseError) {}
         });
 
     }
