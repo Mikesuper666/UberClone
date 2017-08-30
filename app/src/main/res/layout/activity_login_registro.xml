@@ -4,29 +4,53 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/black"
+    android:gravity="bottom"
     tools:context="onuse.com.br.uberclone.LoginRegistroMotoristaActivity">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:src="@drawable/ic_motorista"/>
 
     <EditText
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
         android:hint="email"
+        android:textAlignment="center"
+        android:background="@android:color/white"
+        android:layout_margin="5dp"
         android:id="@+id/edtEmailMotorista"/>
 
     <EditText
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
         android:hint="senha"
+        android:textAlignment="center"
+        android:background="@android:color/white"
+        android:layout_margin="5dp"
         android:id="@+id/edtSenhaMotorista"/>
 
     <Button
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
         android:text="Logar"
+        android:layout_margin="5dp"
+        android:background="@android:color/holo_blue_bright"
+        android:textColor="@android:color/black"
         android:id="@+id/btnLoginMotorista"/>
 
     <Button
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
         android:text="Registrar"
+        android:layout_margin="5dp"
+        android:background="@android:color/holo_blue_dark"
+        android:textColor="@android:color/black"
         android:id="@+id/btnRegistroMotorista"/>
 </LinearLayout>
