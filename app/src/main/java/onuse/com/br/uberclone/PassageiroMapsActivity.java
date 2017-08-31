@@ -8,6 +8,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
@@ -23,6 +24,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -47,8 +50,12 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
     Location mLastLocation;
     LocationRequest mLocationRequest;
     private Button logout, requisitar;
-    private Boolean foiRquisitado = false;
+    //foiRequisitado será true quando o usuario precionar no botão chamar uber
+    private Boolean foiRequisitado = false;
+    //motoristaEncontrado ficará true quando houver motorista disponivel
     private Boolean motoristaEncontrado = false;
+    //id do motorista encontrado
+    private String motoristaEncontradoID;
 
     //local de busca
     private LatLng localdeBusca;
@@ -58,7 +65,6 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
     private ValueEventListener motoristaLocalizacaoReferenciaOuvinte;
 
     private int alcance = 1;
-    private String motoristaEncontradoID;
 
     private GeoQuery geoQuery;
 
@@ -91,8 +97,8 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
             @Override
             public void onClick(View v) {
 
-                if (foiRquisitado){
-                    foiRquisitado = false;
+                if (foiRequisitado){
+                    foiRequisitado = false;
                     geoQuery.removeAllListeners();
                     if(motoristasLocalizacaoReferencia != null) {
                         motoristasLocalizacaoReferencia.removeEventListener(motoristaLocalizacaoReferenciaOuvinte);
@@ -121,26 +127,29 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
                     requisitar.setText("Chamar Uber");
 
                 }else{
-                    foiRquisitado = true;
+                    foiRequisitado = true;
 
                     String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
+                    //Pega a referência de requisitar dentro do firebase
                     DatabaseReference ref = FirebaseDatabase.getInstance().getReference("passageiroRequisicao");
+                    //Usa a referencia passada setantado a ultima localização
                     GeoFire geoFire = new GeoFire(ref);
                     geoFire.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
 
                     localdeBusca = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-                    marcadordeBusca = mMap.addMarker(new MarkerOptions().position(localdeBusca).title("Busque-me Aqui"));
+                    marcadordeBusca = mMap.addMarker(new MarkerOptions().position(localdeBusca).title("Busque-me Aqui").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_passageiro)));
 
                     requisitar.setText("Procurando por motoristas....");
 
-                    ProcurarMotoristasProximos();
+                    ProcurarMotoristasDisponiveis();
                 }
             }
         });
     }
 
-    private void ProcurarMotoristasProximos(){
+    private void ProcurarMotoristasDisponiveis(){
+        //Entramos no nó de motoristas disponiveis
         DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference().child("motoristasDisponiveis");
 
         GeoFire geoFire = new GeoFire(driverLocation);
@@ -150,7 +159,7 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
-                if (!motoristaEncontrado && foiRquisitado){
+                if (!motoristaEncontrado && foiRequisitado){
                     motoristaEncontrado = true;
                     motoristaEncontradoID = key;
 
@@ -181,7 +190,8 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
                 if (!motoristaEncontrado)
                 {
                     alcance++;
-                    ProcurarMotoristasProximos();
+                    ProcurarMotoristasDisponiveis();
+                    Log.i("TAG", "vezes que tentou encontrar motoristas: " + alcance);
                 }
             }
 
@@ -198,7 +208,7 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
         motoristaLocalizacaoReferenciaOuvinte = motoristasLocalizacaoReferencia.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists() && foiRquisitado){
+                if(dataSnapshot.exists() && foiRequisitado){
                     List<Object> map = (List<Object>) dataSnapshot.getValue();
                     double locationLat = 0;
                     double locationLng = 0;
@@ -228,7 +238,7 @@ public class PassageiroMapsActivity extends FragmentActivity implements OnMapRea
                         requisitar.setText("Motorista encontrado: " + String.valueOf(distance));
                     }
 
-                    marcadorMorotista = mMap.addMarker(new MarkerOptions().position(driverLatLng).title("Seu motorista"));
+                    marcadorMorotista = mMap.addMarker(new MarkerOptions().position(driverLatLng).title("Seu motorista").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_car)));
                 }
             }
 
